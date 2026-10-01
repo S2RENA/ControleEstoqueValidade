@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meu App de Estoque</title>
+
+    <!-- Bibliotecas do PyScript para executar Python -->
+    <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css">
+    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
+
+    <!-- Aqui entra nosso CSS (Etapa 2) -->
+    <style>
+      /* Estilo geral do fundo da tela */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 15px;
+    background-color: #f4f6f8; /* Cinza bem claro */
+}
+
+/* O "Cartão" que segura o conteúdo no meio da tela */
+.container {
+    max-width: 600px;         /* Largura máxima no PC */
+    margin: 0 auto;            /* Centraliza na tela */
+    background: white;         /* Fundo branco */
+    padding: 20px;             /* Espaço interno */
+    border-radius: 10px;       /* Bordas arredondadas */
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1); /* Sombra suave */
+}
+.form-group {
+    margin-bottom: 12px; /* Afasta um campo do outro */
+}
+
+label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+/* Deixa caixas de texto, seletores e botões fáceis de clicar no celular */
+input, select, button {
+    width: 100%;               /* Preenche toda a largura */
+    padding: 12px;             /* Área de clique alta */
+    font-size: 16px;           /* Tamanho de letra agradável */
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    box-sizing: border-box;    /* Mantém o alinhamento correto */
+}
+
+/* Cor do botão principal */
+button {
+    background-color: #8b0000; /* Vermelho escuro */
+    color: white;
+    border: none;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+/* Cor especial para o botão do PDF */
+.btn-print {
+    background-color: #28a745; /* Verde */
+}
+/* Tabela de Estoque */
+table {
+    width: 100%;
+    border-collapse: collapse; /* Remove espaço duplo entre bordas */
+    margin-top: 20px;
+}
+
+th, td {
+    border: 1px solid #ddd;
+    padding: 10px;
+    text-align: left;
+}
+
+th {
+    background-color: #8b0000;
+    color: white;
+}
+
+/* REGRA DO PDF: Esconde o formulário na hora de imprimir/salvar PDF */
+@media print {
+    body { background: white; padding: 0; }
+    .no-print { display: none !important; }
+    .container { box-shadow: none; max-width: 100%; padding: 0; }
+}
+    </style>
+</head>
+<body>
+
+    <!-- Conteúdo do App (Etapa 3) -->
+<div class="container">
+  <h2><strong> <p>Controle de Estoque e Validade</p></strong> by Gabriel</h2>
+<div class="no-print">
+  <div class ="form-group">
+    <label for="produto">Corte de Carne</label><!--aqui vc digita o nome da carne-->
+    <input type="text" id ="produto" placeholder="digite o corte">
+  </div>
+<div class="form-group">
+  <label for="quantidade">Peso(kg)</label><!--aqui vc digita o peso-->
+  <input type="number" id="quantidade" step="0.01" placeholder="digite o peso">
+</div>
+<div class ="form-group">
+  <label for="validade">Data de Validade</label><!--aqui vc digita a data de validade-->
+  <input type="date" id="validade">
+
+</div>
+<div class=" form-group">
+  <label for="categoria">Categoria</label><!--aqui vc escolhe a categoria da carne-->
+  <select id="categoria">
+    <option value="bovina">Bovina</option>
+    <option value="suina">Suína</option>
+    <option value="aves">Aves</option>
+  </select>
+</div>
+<button id="btn-add">Adicionar ao Estoque</button>
+<button id="btn-pdf" class="btn-print">Gerar PDF</button>
+<h3><strong>Relatorio de Estoque</strong></h3>
+<table id="tabela-estoque">
+  <thead>
+    <tr>
+      <th>Corte de Carne</th>
+      <th>Categoria</th>
+      <th>Data de Validade</th>
+      <th>Peso (kg)</th>
+      <th class = "no-print">Ação</th>
+    </tr>
+  </thead>
+  <tbody id ="ListaProdutos">
+    <!-- Aqui os produtos serão adicionados dinamicamente -->
+  </tbody>
+</table>
+</div>
+</div>
+    <!-- Lógica Python (Etapa 4) -->
+<script type="py">
+from pyscript import when, document, window
+import json
+
+estoque = []
+
+def salvar_dados():
+    window.localStorage.setItem("estoque", json.dumps(estoque))
+
+
+def carregar_dados():
+  global estoque
+  dados = window.localStorage.getItem("estoque")
+  if dados is not None:
+        estoque = json.loads(dados)
+  atualizar_tabela()
+
+
+def atualizar_tabela():
+  tabela = document.getElementById("ListaProdutos")
+  tabela.innerHTML = ""
+  for index, item in enumerate(estoque):
+    linha = document.createElement("tr")
+    valores = (
+      item["produto"],
+      item["categoria"],
+      item["validade"],
+      f"{float(item['quantidade']):.2f}",
+    )
+    for valor in valores:
+      celula = document.createElement("td")
+      celula.textContent = str(valor)
+      linha.appendChild(celula)
+
+    celula_acao = document.createElement("td")
+    celula_acao.className = "no-print"
+    botao_remover = document.createElement("button")
+    botao_remover.textContent = "Remover"
+    botao_remover.setAttribute("type", "button")
+    botao_remover.setAttribute("data-index", str(index))
+    celula_acao.appendChild(botao_remover)
+    linha.appendChild(celula_acao)
+    tabela.appendChild(linha)
+
+
+@when("click", "#btn-add")
+def adicionar_produto(event):
+  input_produto = document.getElementById("produto")
+  input_quantidade = document.getElementById("quantidade")
+  input_validade = document.getElementById("validade")
+  select_categoria = document.getElementById("categoria")
+
+  produto = input_produto.value.strip()
+  quantidade = input_quantidade.value
+  validade = input_validade.value
+  categoria = select_categoria.value
+
+  if not produto or not quantidade or not validade:
+    window.alert("Por favor, preencha todos os campos.")
+    return
+  try:
+    peso = float(quantidade)
+  except ValueError:
+    window.alert("Informe um peso válido.")
+    return
+  if peso <= 0:
+    window.alert("O peso deve ser maior que zero.")
+    return
+
+  estoque.append({
+    "produto": produto,
+    "quantidade": peso,
+    "validade": validade,
+    "categoria": categoria,
+  })
+  salvar_dados()
+  atualizar_tabela()
+  input_produto.value = ""
+  input_quantidade.value = ""
+  input_validade.value = ""
+
+
+@when("click", "#ListaProdutos")
+def remover_produto(event):
+  botao = event.target.closest("button[data-index]")
+  if botao is None:
+    return
+  index = int(botao.getAttribute("data-index"))
+  estoque.pop(index)
+  salvar_dados()
+  atualizar_tabela()
+
+
+@when("click", "#btn-pdf")
+def gerar_pdf(event):
+  window.print()
+
+
+carregar_dados()
+</script>
+</html>
